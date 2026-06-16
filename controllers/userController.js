@@ -21,15 +21,17 @@ exports.getProfile = async (req, res) => {
 };
 
 // GET /api/users/addresses
-exports.listAddresses = async (req, res) => {
-  const user = req.user;
-  res.json({ addresses: user.addresses || [] });
+exports.listAddresses = async (req, res, next) => {
+  try {
+    const user = req.user;
+    res.json({ addresses: user.addresses || [] });
+  } catch (err) { next(err); }
 };
 
 // POST /api/users/addresses
 // Body: { label, line1, line2, city, state, postalCode, country, isDefault }
-exports.addAddress = async (req, res) => {
-  if (!validateAddressPayload(req.body)) return res.status(400).json({ message: 'Missing required address fields' });
+exports.addAddress = async (req, res, next) => {
+  if (!validateAddressPayload(req.body)) return next(require('../utils/ApiError').badRequest('Missing required address fields'));
   try {
     const user = await User.findById(req.user._id);
     const address = {
@@ -51,16 +53,16 @@ exports.addAddress = async (req, res) => {
     await user.save();
     res.status(201).json({ addresses: user.addresses });
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    next(err);
   }
 };
 
 // PUT /api/users/addresses/:id
-exports.updateAddress = async (req, res) => {
+exports.updateAddress = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
     const address = user.addresses.id(req.params.id);
-    if (!address) return res.status(404).json({ message: 'Address not found' });
+    if (!address) return next(require('../utils/ApiError').notFound('Address not found'));
 
     if (req.body.isDefault) {
       user.addresses.forEach((addr) => { addr.isDefault = false; });
@@ -74,16 +76,16 @@ exports.updateAddress = async (req, res) => {
     await user.save();
     res.json({ addresses: user.addresses });
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    next(err);
   }
 };
 
 // DELETE /api/users/addresses/:id
-exports.deleteAddress = async (req, res) => {
+exports.deleteAddress = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
     const address = user.addresses.id(req.params.id);
-    if (!address) return res.status(404).json({ message: 'Address not found' });
+    if (!address) return next(require('../utils/ApiError').notFound('Address not found'));
     address.remove();
     if (user.addresses.length > 0 && !user.addresses.some((addr) => addr.isDefault)) {
       user.addresses[0].isDefault = true;
@@ -91,6 +93,6 @@ exports.deleteAddress = async (req, res) => {
     await user.save();
     res.json({ addresses: user.addresses });
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    next(err);
   }
 };
