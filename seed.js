@@ -8,21 +8,28 @@ const bcrypt = require('bcryptjs');
 async function seed() {
   await connectDB();
   console.log('Seeding database...');
+
   await User.deleteMany({});
   await Book.deleteMany({});
 
+  // ---------------- USERS ----------------
   const salt = await bcrypt.genSalt(10);
   const adminPass = await bcrypt.hash('adminpass', salt);
   const custPass = await bcrypt.hash('custpass', salt);
 
-  const admin = new User({ name: 'Admin User', email: 'admin@example.com', password: adminPass, role: 'Admin' });
-  const cust1 = new User({
-    name: 'Customer One',
-    email: 'cust1@example.com',
-    password: custPass,
-    role: 'Customer',
-    addresses: [
-      {
+  const users = [
+    {
+      name: 'Admin User',
+      email: 'admin@example.com',
+      password: adminPass,
+      role: 'Admin'
+    },
+    {
+      name: 'Customer One',
+      email: 'cust1@example.com',
+      password: custPass,
+      role: 'Customer',
+      addresses: [{
         label: 'Home',
         line1: '123 Main St',
         city: 'Metropolis',
@@ -30,16 +37,14 @@ async function seed() {
         postalCode: '12345',
         country: 'Country',
         isDefault: true
-      }
-    ]
-  });
-  const cust2 = new User({
-    name: 'Customer Two',
-    email: 'cust2@example.com',
-    password: custPass,
-    role: 'Customer',
-    addresses: [
-      {
+      }]
+    },
+    {
+      name: 'Customer Two',
+      email: 'cust2@example.com',
+      password: custPass,
+      role: 'Customer',
+      addresses: [{
         label: 'Home',
         line1: '456 Elm St',
         city: 'Gotham',
@@ -47,25 +52,53 @@ async function seed() {
         postalCode: '67890',
         country: 'Country',
         isDefault: true
-      }
-    ]
-  });
-  await admin.save();
-  await cust1.save();
-  await cust2.save();
+      }]
+    }
+  ];
+
+  await User.insertMany(users);
+
+  // ---------------- BOOKS ----------------
+  const authors = [
+    'George Orwell', 'J.K. Rowling', 'Stephen King', 'Agatha Christie',
+    'J.R.R. Tolkien', 'Dan Brown', 'Paulo Coelho', 'Ernest Hemingway',
+    'Mark Twain', 'Jane Austen', 'Leo Tolstoy', 'Fyodor Dostoevsky',
+    'Haruki Murakami', 'Chetan Bhagat', 'R.K. Narayan',
+    'Khaled Hosseini', 'Suzanne Collins', 'Rick Riordan'
+  ];
+
+  const genres = [
+    'Fiction', 'Non-Fiction', 'Fantasy', 'Sci-Fi',
+    'Mystery', 'Thriller', 'Romance', 'Classic'
+  ];
+
+  const titleWords = [
+    'Shadow', 'Dream', 'Empire', 'Secret', 'Journey',
+    'Legacy', 'Chronicles', 'Night', 'Light', 'Fire',
+    'Game', 'Story', 'World', 'Path', 'Return'
+  ];
 
   const books = [];
-  for (let i = 1; i <= 10; i++) {
-    books.push(new Book({
-      title: `Sample Book ${i}`,
-      author: `Author ${i % 3}`,
-      genre: ['Fiction', 'Non-Fiction', 'Sci-Fi'][i % 3],
-      price: 10 + i
-    }));
+
+  for (let i = 1; i <= 220; i++) {
+    const title =
+      `${titleWords[i % titleWords.length]} of the ${titleWords[(i + 3) % titleWords.length]}`;
+
+    const book = {
+      title: `${title} ${i}`,
+      author: authors[i % authors.length],
+      genre: genres[i % genres.length],
+      price: Math.floor(Math.random() * 500) + 100 // ₹100–₹600
+    };
+
+    books.push(book);
   }
+
   await Book.insertMany(books);
 
-  console.log('Seed complete. Admin: admin@example.com / adminpass');
+  console.log('✅ Seed complete!');
+  console.log('Admin: admin@example.com / adminpass');
+
   process.exit(0);
 }
 
