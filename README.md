@@ -83,6 +83,7 @@ Errors are formatted consistently via the global error handler:
 ```
 
 Common HTTP status codes:
+
 - `400 Bad Request` - Invalid input or validation failure
 - `401 Unauthorized` - Missing or invalid token
 - `403 Forbidden` - Insufficient permissions
@@ -97,6 +98,7 @@ Common HTTP status codes:
 `POST /api/auth/register`
 
 Body:
+
 ```json
 {
   "name": "Customer User",
@@ -106,6 +108,7 @@ Body:
 ```
 
 Response:
+
 ```json
 {
   "token": "<jwt-token>"
@@ -117,6 +120,7 @@ Response:
 `POST /api/auth/login`
 
 Body:
+
 ```json
 {
   "email": "user@example.com",
@@ -125,6 +129,7 @@ Body:
 ```
 
 Response:
+
 ```json
 {
   "token": "<jwt-token>"
@@ -138,11 +143,13 @@ Response:
 `GET /api/users/profile`
 
 Headers:
+
 ```http
 Authorization: Bearer <token>
 ```
 
 Response:
+
 ```json
 {
   "id": "...",
@@ -153,6 +160,127 @@ Response:
 }
 ```
 
+### Get cart
+
+`GET /api/users/cart`
+
+Response:
+
+```json
+{
+  "cart": {
+    "_id": "...",
+    "user": "...",
+    "items": [
+      {
+        "book": {
+          "_id": "...",
+          "title": "...",
+          "price": 19.99
+        },
+        "quantity": 2,
+        "price": 19.99
+      }
+    ],
+    "summary": {
+      "subtotal": 39.98,
+      "tax": 3.2,
+      "total": 43.18,
+      "taxRate": 0.08
+    }
+  }
+}
+```
+
+### Add item to cart
+
+`POST /api/users/cart/items`
+
+Body:
+
+```json
+{
+  "bookId": "<bookId>",
+  "quantity": 2
+}
+```
+
+### Update cart item quantity
+
+`PUT /api/users/cart/items/:bookId`
+
+Body:
+
+```json
+{
+  "quantity": 3
+}
+```
+
+### Remove item from cart
+
+`DELETE /api/users/cart/items/:bookId`
+
+### Clear cart
+
+`DELETE /api/users/cart`
+
+### Checkout cart
+
+`POST /api/users/cart/checkout`
+
+Body:
+
+```json
+{
+  "addressId": "<addressId>"
+}
+```
+
+Response:
+
+```json
+{
+  "message": "Order created successfully",
+  "order": {
+    "_id": "...",
+    "user": "...",
+    "items": [
+      {
+        "book": {
+          "_id": "...",
+          "title": "...",
+          "price": 19.99
+        },
+        "quantity": 2,
+        "price": 19.99
+      }
+    ],
+    "shippingAddress": {
+      "addressId": "...",
+      "label": "Home",
+      "line1": "123 Main St",
+      "city": "Metropolis",
+      "state": "State",
+      "postalCode": "12345",
+      "country": "Country"
+    }
+  },
+  "summary": {
+    "subtotal": 39.98,
+    "tax": 3.2,
+    "total": 43.18,
+    "taxRate": 0.08
+  },
+  "cart": {
+    "_id": "...",
+    "itemCount": 0
+  }
+}
+```
+
+This creates an order from the current cart and clears the cart after a successful checkout.
+
 ### List addresses
 
 `GET /api/users/addresses`
@@ -162,6 +290,7 @@ Response:
 `POST /api/users/addresses`
 
 Body:
+
 ```json
 {
   "label": "Home",
@@ -192,11 +321,13 @@ Body can include any of the address fields, including `isDefault`.
 `GET /api/books?page=1&limit=10&sort=-createdAt&minRating=4&author=Author`
 
 Optional query parameters:
+
 - `author` - Filter by author name
 - `minRating` - Filter by minimum average rating
 - `page`, `limit`, `sort`, `select` - Standard pagination parameters
 
 Response:
+
 ```json
 {
   "page": 1,
@@ -212,6 +343,7 @@ Response:
 `GET /api/books/:id`
 
 Response:
+
 ```json
 {
   "data": { ... }
@@ -223,6 +355,7 @@ Response:
 `POST /api/books`
 
 Body:
+
 ```json
 {
   "title": "New Book",
@@ -242,13 +375,41 @@ Body:
 
 `POST /api/orders`
 
-Body:
+Body (either provide items explicitly or use the current cart):
+
 ```json
 {
-  "items": [
-    { "bookId": "<bookId>", "quantity": 2 }
-  ],
   "addressId": "<addressId>"
+}
+```
+
+Or explicitly:
+
+```json
+{
+  "items": [{ "bookId": "<bookId>", "quantity": 2 }],
+  "addressId": "<addressId>"
+}
+```
+
+If `items` are not supplied, the API uses the authenticated user's cart as the source for the order. After a successful checkout, the cart is cleared.
+
+Success response:
+
+```json
+{
+  "message": "Order created successfully",
+  "order": { "_id": "...", "user": "...", "items": [ ... ] },
+  "summary": {
+    "subtotal": 39.98,
+    "tax": 3.2,
+    "total": 43.18,
+    "taxRate": 0.08
+  },
+  "cart": {
+    "_id": "...",
+    "itemCount": 0
+  }
 }
 ```
 
@@ -259,9 +420,11 @@ The order stores the selected shipping address snapshot.
 `GET /api/orders?page=1&limit=10`
 
 Query parameters:
+
 - `page`, `limit`, `sort`, `select` - Standard pagination parameters
 
 Response:
+
 ```json
 {
   "page": 1,
@@ -287,6 +450,7 @@ Response:
 `PUT /api/orders/:id/status`
 
 Body:
+
 ```json
 {
   "status": "Processing"
@@ -294,6 +458,7 @@ Body:
 ```
 
 Valid statuses:
+
 - `Pending`
 - `Processing`
 - `Shipped`
@@ -306,6 +471,7 @@ Valid statuses:
 `POST /api/books/:id/rate`
 
 Body:
+
 ```json
 {
   "rating": 5,
@@ -315,6 +481,7 @@ Body:
 ```
 
 Rules:
+
 - The book must belong to a delivered order for the current user.
 - A user can rate the same book only once per purchase.
 - The book's `averageRating` is updated automatically.
@@ -322,6 +489,7 @@ Rules:
 ## Seed Data
 
 The seed script creates:
+
 - 1 Admin user: `admin@example.com` / `adminpass`
 - 2 Customer users: `cust1@example.com` / `custpass`, `cust2@example.com` / `custpass`
 - 10 sample books
