@@ -11,6 +11,7 @@ const userRoutes = require("./routes/users");
 const app = express();
 app.use(morgan("dev"));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 connectDB();
 
