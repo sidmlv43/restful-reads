@@ -17,3 +17,6 @@ exports.createBook = handler.createOne(Book);
 
 // DELETE /api/books/:id (Admin)
 exports.deleteBook = handler.deleteOne(Book);
+
+// PATCH /api/books/:id (Admin)
+exports.updateBook = handler.updateOne(Book);

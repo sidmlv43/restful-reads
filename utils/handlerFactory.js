@@ -1,5 +1,7 @@
 // Generic handler factory to create CRUD handlers with pagination, filtering, sorting, selection
 // Uses ApiUtils to parse request query into options
+const mongoose = require('mongoose');
+const ApiError = require('./ApiError');
 const ApiUtils = require('./ApiUtils');
 
 exports.list = function (Model, options = {}) {
@@ -30,11 +32,14 @@ exports.getOne = function (Model, options = {}) {
   const { populate, select } = options;
   return async (req, res, next) => {
     try {
+      if (!mongoose.isValidObjectId(req.params.id)) {
+        return next(ApiError.badRequest('Invalid book id'));
+      }
       const api = new ApiUtils(req);
       const opts = api.getOptions();
       const sel = select || opts.select || '';
       const doc = await Model.findById(req.params.id).select(sel).populate(populate || '').exec();
-      if (!doc) return next(new (require('./ApiError'))(404, 'Not found'));
+      if (!doc) return next(ApiError.notFound('Not found'));
       return res.json({ data: doc });
     } catch (err) {
       return next(err);
@@ -60,7 +65,9 @@ exports.updateOne = function (Model, options = {}) {
   const { populate } = options;
   return async (req, res, next) => {
     try {
-      const ApiError = require('./ApiError');
+      if (!mongoose.isValidObjectId(req.params.id)) {
+        return next(ApiError.badRequest('Invalid book id'));
+      }
       let doc = await Model.findById(req.params.id);
       if (!doc) return next(ApiError.notFound('Not found'));
       Object.assign(doc, req.body);
@@ -76,7 +83,9 @@ exports.updateOne = function (Model, options = {}) {
 exports.deleteOne = function (Model, options = {}) {
   return async (req, res, next) => {
     try {
-      const ApiError = require('./ApiError');
+      if (!mongoose.isValidObjectId(req.params.id)) {
+        return next(ApiError.badRequest('Invalid book id'));
+      }
       const doc = await Model.findById(req.params.id);
       if (!doc) return next(ApiError.notFound('Not found'));
       await doc.deleteOne();

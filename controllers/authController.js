@@ -33,7 +33,7 @@ exports.register = async (req, res, next) => {
     });
     await user.save();
 
-    const payload = { id: user._id };
+    const payload = { id: user._id, role: user.role };
     const token = jwt.sign(payload, process.env.JWT_SECRET || "changeme", {
       expiresIn: "7d",
     });
@@ -63,7 +63,7 @@ exports.login = async (req, res, next) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return next(ApiError.badRequest("Invalid credentials"));
 
-    const payload = { id: user._id };
+    const payload = { id: user._id, role: user.role };
     const token = jwt.sign(payload, process.env.JWT_SECRET || "changeme", {
       expiresIn: "7d",
     });
