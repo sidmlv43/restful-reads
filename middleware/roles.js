@@ -4,11 +4,9 @@ module.exports = function (requiredRole) {
     if (!req.user)
       return res.status(401).json({ message: "Not authenticated" });
     if (req.user.role !== requiredRole)
-      return res
-        .status(403)
-        .json({
-          message: "Forbidden: user does not have required permissions",
-        });
+      return res.status(403).json({
+        message: "Forbidden: user does not have required permissions",
+      });
     next();
   };
 };

@@ -4,8 +4,7 @@
   "description": "RESTful Bookstore API for testing and learning",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
+    "start": "nodemon index.js",
     "seed": "node seed.js"
   },
   "keywords": [],
