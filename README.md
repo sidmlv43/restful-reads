@@ -37,6 +37,28 @@ npm run dev
 
 The app will run on `http://localhost:5000` by default.
 
+## Docker Setup
+
+Run the API and MongoDB together with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+The API will be available at `http://localhost:5000`.
+
+To seed the database inside the app container:
+
+```bash
+docker compose exec app npm run seed
+```
+
+To stop the containers:
+
+```bash
+docker compose down
+```
+
 ## Query Parameters
 
 All list endpoints support:
