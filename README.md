@@ -1,13 +1,19 @@
 # Bookstore API
 
-RESTful Bookstore API using Node.js, Express, MongoDB, Mongoose, and JWT authentication.
+A RESTful bookstore backend built with Node.js, Express, MongoDB, Mongoose, JWT authentication, and file upload support.
 
-## Architecture
+## Overview
 
-- **ApiUtils** (`utils/ApiUtils.js`): Centralized query parameter parsing for pagination, filtering, sorting, and field selection.
-- **HandlerFactory** (`utils/handlerFactory.js`): Generic CRUD handlers (list, getOne, createOne, updateOne, deleteOne) with built-in pagination and filtering.
-- **ApiError** (`utils/ApiError.js`): Consistent error handling with status codes and details.
-- **Global Error Handler** (`middleware/errorHandler.js`): Centralized error response formatting.
+This API supports:
+
+- user registration/login
+- role-based access control (`Admin` and `Customer`)
+- product catalog with books, descriptions, and images
+- cart management
+- address management
+- checkout and order creation
+- book rating and review workflows
+- multipart file upload for book images via `multer`
 
 ## Setup
 
@@ -32,48 +38,54 @@ npm run seed
 4. Start the server:
 
 ```bash
-npm run dev
+npm start
 ```
 
-The app will run on `http://localhost:5000` by default.
+The server starts on `http://localhost:5000` by default.
 
-## Query Parameters
+## Environment Variables
+
+Required variables in `.env`:
+
+```env
+MONGO_URI=mongodb://127.0.0.1:27017/bookstore
+JWT_SECRET=change_this_secret
+PORT=5000
+```
+
+## Seed Data
+
+The seed script creates:
+
+- 20 Admin users (`admin@example.com`, `admin2@example.com`, ..., `admin20@example.com`)
+- 20 Customer users (`cust1@example.com`, ..., `cust20@example.com`)
+- 220 seeded books with `description` and `images`
+
+Default credentials:
+
+- Admin: `admin@example.com` / `adminpass`
+- Customer: `cust1@example.com` / `custpass`
+
+## APIs
+
+### Common List Query Options
 
 All list endpoints support:
 
-- **`page`** (default: `1`) - Page number for pagination
-- **`limit`** (default: `10`, max: `100`) - Results per page
-- **`sort`** - Sort by fields (comma-separated, prefix with `-` for descending)
-  - Example: `sort=createdAt` or `sort=-createdAt,title`
-- **`select`** - Select specific fields (comma-separated)
-  - Example: `select=title,author,price`
-- **Custom filters** - Model-specific filters (e.g., `author=Tolkien`, `minRating=4`)
+- `page` - Page number (default `1`)
+- `limit` - Page size (default `10`, max `100`)
+- `sort` - Sort fields (`sort=-createdAt,title`)
+- `select` - Select fields (`select=title,author,price`)
 
-### Example Requests
+Example:
 
-```
-GET /api/books?page=1&limit=10&sort=-createdAt&select=title,author
-GET /api/orders?page=1&limit=5&sort=-createdAt
-GET /api/books?author=Tolkien&minRating=4
+```http
+GET /api/books?page=2&limit=5&sort=-createdAt&select=title,author
 ```
 
-## List Response Format
+### Error Format
 
-All paginated list endpoints return:
-
-```json
-{
-  "page": 1,
-  "limit": 10,
-  "total": 42,
-  "pages": 5,
-  "results": [...]
-}
-```
-
-## Error Response Format
-
-Errors are formatted consistently via the global error handler:
+Errors use this shape:
 
 ```json
 {
@@ -82,22 +94,13 @@ Errors are formatted consistently via the global error handler:
 }
 ```
 
-Common HTTP status codes:
-
-- `400 Bad Request` - Invalid input or validation failure
-- `401 Unauthorized` - Missing or invalid token
-- `403 Forbidden` - Insufficient permissions
-- `404 Not Found` - Resource not found
-- `409 Conflict` - Duplicate or conflicting operation
-- `500 Internal Server Error` - Server error
-
 ## Authentication
 
 ### Register
 
 `POST /api/auth/register`
 
-Body:
+Request body:
 
 ```json
 {
@@ -119,7 +122,7 @@ Response:
 
 `POST /api/auth/login`
 
-Body:
+Request body:
 
 ```json
 {
@@ -136,17 +139,141 @@ Response:
 }
 ```
 
-## User Endpoints
+## Book Endpoints
 
-### Get profile
+### List books
 
-`GET /api/users/profile`
+`GET /api/books`
 
-Headers:
+Optional filters:
+
+- `author` - Filter by author name
+- `minRating` - Filter by minimum average rating
+- `page`, `limit`, `sort`, `select`
+
+Example:
 
 ```http
-Authorization: Bearer <token>
+GET /api/books?author=J.K. Rowling&minRating=4&page=1&limit=10
 ```
+
+Response:
+
+```json
+{
+  "page": 1,
+  "limit": 10,
+  "total": 42,
+  "pages": 5,
+  "results": [ ... ]
+}
+```
+
+### Get single book
+
+`GET /api/books/:id`
+
+Response:
+
+```json
+{
+  "data": {
+    "_id": "...",
+    "title": "...",
+    "description": "...",
+    "images": ["/uploads/123.jpg"],
+    "author": "...",
+    "genre": "...",
+    "price": 199,
+    "ratingsCount": 0,
+    "averageRating": 0
+  }
+}
+```
+
+### Create book (Admin only)
+
+`POST /api/books`
+
+Content type: `multipart/form-data`
+
+Fields:
+
+- `title` (string)
+- `author` (string)
+- `genre` (string)
+- `price` (number)
+- `description` (string)
+- `images` (up to 5 image files)
+
+Example `curl`:
+
+```bash
+curl -X POST http://localhost:5000/api/books \
+  -H "Authorization: Bearer <token>" \
+  -F "title=New Book" \
+  -F "author=Author Name" \
+  -F "genre=Fiction" \
+  -F "price=19.99" \
+  -F "description=A short description" \
+  -F "images=@./cover1.jpg" \
+  -F "images=@./cover2.jpg"
+```
+
+Response:
+
+```json
+{
+  "_id": "...",
+  "title": "New Book",
+  "description": "A short description",
+  "images": [
+    "/uploads/1680000000000-cover1.jpg",
+    "/uploads/1680000000000-cover2.jpg"
+  ],
+  "author": "Author Name",
+  "genre": "Fiction",
+  "price": 19.99,
+  "ratingsCount": 0,
+  "averageRating": 0,
+  "createdAt": "..."
+}
+```
+
+### Update book (Admin only)
+
+`PATCH /api/books/:id`
+
+Content type: `multipart/form-data`
+
+Use the same fields as create; uploaded `images` replace the `images` array when present.
+
+Example `curl`:
+
+```bash
+curl -X PATCH http://localhost:5000/api/books/<bookId> \
+  -H "Authorization: Bearer <token>" \
+  -F "price=24.99" \
+  -F "images=@./new-cover.jpg"
+```
+
+### Delete book (Admin only)
+
+`DELETE /api/books/:id`
+
+### Notes
+
+- Images are stored to the local `uploads/` directory.
+- Static files are served at `http://localhost:5000/uploads/<filename>`.
+- Each book can contain a maximum of 5 images.
+
+## User Endpoints
+
+All user routes require `Authorization: Bearer <token>`.
+
+### Profile
+
+`GET /api/users/profile`
 
 Response:
 
@@ -156,43 +283,26 @@ Response:
   "name": "...",
   "email": "...",
   "role": "Customer",
-  "addresses": [ ... ]
-}
-```
-
-### Get cart
-
-`GET /api/users/cart`
-
-Response:
-
-```json
-{
+  "addresses": [ ... ],
   "cart": {
-    "_id": "...",
-    "user": "...",
-    "items": [
-      {
-        "book": {
-          "_id": "...",
-          "title": "...",
-          "price": 19.99
-        },
-        "quantity": 2,
-        "price": 19.99
-      }
-    ],
+    "itemCount": 0,
     "summary": {
-      "subtotal": 39.98,
-      "tax": 3.2,
-      "total": 43.18,
+      "subtotal": 0,
+      "tax": 0,
+      "total": 0,
       "taxRate": 0.08
     }
   }
 }
 ```
 
-### Add item to cart
+### Cart
+
+#### Get cart
+
+`GET /api/users/cart`
+
+#### Add item to cart
 
 `POST /api/users/cart/items`
 
@@ -205,7 +315,7 @@ Body:
 }
 ```
 
-### Update cart item quantity
+#### Update cart item quantity
 
 `PUT /api/users/cart/items/:bookId`
 
@@ -217,15 +327,15 @@ Body:
 }
 ```
 
-### Remove item from cart
+#### Remove cart item
 
 `DELETE /api/users/cart/items/:bookId`
 
-### Clear cart
+#### Clear cart
 
 `DELETE /api/users/cart`
 
-### Checkout cart
+#### Checkout cart
 
 `POST /api/users/cart/checkout`
 
@@ -237,35 +347,12 @@ Body:
 }
 ```
 
-Response:
+Response summary:
 
 ```json
 {
   "message": "Order created successfully",
-  "order": {
-    "_id": "...",
-    "user": "...",
-    "items": [
-      {
-        "book": {
-          "_id": "...",
-          "title": "...",
-          "price": 19.99
-        },
-        "quantity": 2,
-        "price": 19.99
-      }
-    ],
-    "shippingAddress": {
-      "addressId": "...",
-      "label": "Home",
-      "line1": "123 Main St",
-      "city": "Metropolis",
-      "state": "State",
-      "postalCode": "12345",
-      "country": "Country"
-    }
-  },
+  "order": { ... },
   "summary": {
     "subtotal": 39.98,
     "tax": 3.2,
@@ -279,13 +366,13 @@ Response:
 }
 ```
 
-This creates an order from the current cart and clears the cart after a successful checkout.
+### Addresses
 
-### List addresses
+#### List addresses
 
 `GET /api/users/addresses`
 
-### Add address
+#### Add address
 
 `POST /api/users/addresses`
 
@@ -304,70 +391,15 @@ Body:
 }
 ```
 
-### Update address
+#### Update address
 
 `PUT /api/users/addresses/:id`
 
-Body can include any of the address fields, including `isDefault`.
+Body can include any address field.
 
-### Delete address
+#### Delete address
 
 `DELETE /api/users/addresses/:id`
-
-## Book Endpoints
-
-### List books
-
-`GET /api/books?page=1&limit=10&sort=-createdAt&minRating=4&author=Author`
-
-Optional query parameters:
-
-- `author` - Filter by author name
-- `minRating` - Filter by minimum average rating
-- `page`, `limit`, `sort`, `select` - Standard pagination parameters
-
-Response:
-
-```json
-{
-  "page": 1,
-  "limit": 10,
-  "total": 42,
-  "pages": 5,
-  "results": [ ... ]
-}
-```
-
-### Get book details
-
-`GET /api/books/:id`
-
-Response:
-
-```json
-{
-  "data": { ... }
-}
-```
-
-### Create book (Admin only)
-
-`POST /api/books`
-
-Body:
-
-```json
-{
-  "title": "New Book",
-  "author": "Author Name",
-  "genre": "Fiction",
-  "price": 19.99
-}
-```
-
-### Delete book (Admin only)
-
-`DELETE /api/books/:id`
 
 ## Order Endpoints
 
@@ -375,7 +407,7 @@ Body:
 
 `POST /api/orders`
 
-Body (either provide items explicitly or use the current cart):
+Use cart items by default:
 
 ```json
 {
@@ -383,7 +415,7 @@ Body (either provide items explicitly or use the current cart):
 }
 ```
 
-Or explicitly:
+Or explicitly provide items:
 
 ```json
 {
@@ -392,58 +424,15 @@ Or explicitly:
 }
 ```
 
-If `items` are not supplied, the API uses the authenticated user's cart as the source for the order. After a successful checkout, the cart is cleared.
-
-Success response:
-
-```json
-{
-  "message": "Order created successfully",
-  "order": { "_id": "...", "user": "...", "items": [ ... ] },
-  "summary": {
-    "subtotal": 39.98,
-    "tax": 3.2,
-    "total": 43.18,
-    "taxRate": 0.08
-  },
-  "cart": {
-    "_id": "...",
-    "itemCount": 0
-  }
-}
-```
-
-The order stores the selected shipping address snapshot.
-
 ### List orders
 
-`GET /api/orders?page=1&limit=10`
+`GET /api/orders`
 
-Query parameters:
-
-- `page`, `limit`, `sort`, `select` - Standard pagination parameters
-
-Response:
-
-```json
-{
-  "page": 1,
-  "limit": 10,
-  "total": 5,
-  "pages": 1,
-  "results": [ ... ]
-}
-```
-
-- Customers see only their own orders
-- Admins see all orders
+Customers see their own orders, admins see all.
 
 ### Get order details
 
 `GET /api/orders/:id`
-
-- Customers can only fetch their own order
-- Admins can fetch any order
 
 ### Update order status (Admin only)
 
@@ -466,7 +455,7 @@ Valid statuses:
 
 ## Rating Endpoints
 
-### Rate a purchased book (Customer only)
+### Rate a book (Customer only)
 
 `POST /api/books/:id/rate`
 
@@ -482,42 +471,33 @@ Body:
 
 Rules:
 
-- The book must belong to a delivered order for the current user.
-- A user can rate the same book only once per purchase.
-- The book's `averageRating` is updated automatically.
+- The user must have purchased the book in an order.
+- Ratings are only allowed for owned orders.
+- A user can rate a book once per purchase.
 
-## Seed Data
+## Project Structure
 
-The seed script creates:
+- `index.js` - Express app setup and static upload serving
+- `config/db.js` - MongoDB connection
+- `controllers/` - request handlers
+- `routes/` - endpoint definitions
+- `models/` - Mongoose schemas
+- `middleware/` - auth and error middleware
+- `utils/` - generic handlers and query utilities
+- `seed.js` - seed script
 
-- 1 Admin user: `admin@example.com` / `adminpass`
-- 2 Customer users: `cust1@example.com` / `custpass`, `cust2@example.com` / `custpass`
-- 10 sample books
+## Notes
 
-## Environment
-
-Create `.env` from `.env.example`:
-
-```env
-MONGO_URI=mongodb://127.0.0.1:27017/bookstore
-JWT_SECRET=change_this_secret
-PORT=5000
-```
+- Book images are uploaded via `multipart/form-data` and stored in `uploads/`.
+- Uploaded images are served from `/uploads/<filename>`.
+- The seed script regenerates users, books, and the `carts` collection.
+- The `images` array in `Book` is limited to 5 entries by schema validation.
 
 ## Scripts
 
-- `npm install` - Install dependencies
-- `npm run seed` - Seed database
-- `npm run dev` - Run development server with nodemon
-- `npm start` - Start production server
-
-## Architecture Notes
-
-- **Global Error Handler**: All async errors are caught and forwarded to the centralized error middleware via `next(err)`.
-- **Factory Pattern**: Repeated CRUD logic is abstracted into `handlerFactory` for DRY code.
-- **Query Parsing**: `ApiUtils` extracts and validates pagination, sorting, filtering, and selection from request queries.
-- **Address Schema**: Separated into `models/Address.js` for reuse in `User` and `Order` models.
-- **Role-Based Access**: Middleware `auth.js` and `roles.js` enforce JWT and role-based access control.
+- `npm install` - install dependencies
+- `npm run seed` - seed the database
+- `npm start` - start the server with nodemon
 
 ## Notes
 
