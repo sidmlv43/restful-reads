@@ -31,6 +31,11 @@ const getOrCreateCart = async (userId) => {
   return cart;
 };
 
+const getCartItemBookId = (item) => {
+  if (!item || !item.book) return null;
+  return item.book._id ? item.book._id.toString() : item.book.toString();
+};
+
 // GET /api/users/profile
 exports.getProfile = async (req, res) => {
   const user = req.user;
@@ -96,7 +101,7 @@ exports.addToCart = async (req, res, next) => {
 
     const cart = await getOrCreateCart(req.user._id);
     const existingItem = cart.items.find(
-      (item) => item.book.toString() === bookId,
+      (item) => getCartItemBookId(item) === bookId,
     );
     if (existingItem) {
       existingItem.quantity += quantity;
@@ -132,7 +137,7 @@ exports.updateCartItem = async (req, res, next) => {
 
     const cart = await getOrCreateCart(req.user._id);
     const item = cart.items.find(
-      (entry) => entry.book.toString() === req.params.bookId,
+      (entry) => getCartItemBookId(entry) === req.params.bookId,
     );
     if (!item) return next(ApiError.notFound("Cart item not found"));
 
@@ -159,7 +164,7 @@ exports.removeCartItem = async (req, res, next) => {
   try {
     const cart = await getOrCreateCart(req.user._id);
     cart.items = cart.items.filter(
-      (item) => item.book.toString() !== req.params.bookId,
+      (item) => getCartItemBookId(item) !== req.params.bookId,
     );
     await cart.save();
 
