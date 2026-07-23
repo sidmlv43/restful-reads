@@ -68,3 +68,14 @@ exports.updateBook = async (req, res, next) => {
     return next(err);
   }
 };
+
+exports.getFeaturedBooks = async (req, res, next) => {
+  req.query.isFeatured = true;
+
+  console.log("req.query in getFeaturedBooks:", req.query); // Debugging line
+  return handler.list(Book, {
+    filterMap,
+    defaultSort: { createdAt: -1 },
+    populate: "",
+  })(req, res, next);
+};

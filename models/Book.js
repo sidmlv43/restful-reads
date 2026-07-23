@@ -27,6 +27,7 @@ const BookSchema = new mongoose.Schema(
     price: { type: Number, required: true },
     ratingsCount: { type: Number, default: 0 },
     averageRating: { type: Number, default: 0 },
+    isFeatured: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

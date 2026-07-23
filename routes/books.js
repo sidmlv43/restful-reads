@@ -31,7 +31,10 @@ const upload = multer({
 const bookImageUpload = upload.array("images", 5);
 
 // Public: list and get
+router.get("/get-featured", bookController.getFeaturedBooks);
+
 router.get("/", bookController.listBooks);
+
 router.get("/:id", bookController.getBook);
 
 // Admin only
