@@ -22,6 +22,7 @@ const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
     if (!file.mimetype.startsWith("image/")) {
+      console.log("[MULTER] req.body", req.body);
       return cb(new Error("Only image uploads are allowed"));
     }
     cb(null, true);

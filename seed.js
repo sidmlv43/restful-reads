@@ -14,53 +14,23 @@ async function seed() {
   await mongoose.connection.db.dropCollection("carts").catch(() => {});
 
   // ---------------- USERS ----------------
+
   const salt = await bcrypt.genSalt(10);
+
   const adminPass = await bcrypt.hash("adminpass", salt);
   const custPass = await bcrypt.hash("custpass", salt);
 
-  const users = [
-    {
-      name: "Admin User",
-      email: "admin@example.com",
-      password: adminPass,
-      role: "Admin",
-    },
-    {
-      name: "Customer One",
-      email: "cust1@example.com",
-      password: custPass,
-      role: "Customer",
-      addresses: [
-        {
-          label: "Home",
-          line1: "123 Main St",
-          city: "Metropolis",
-          state: "State",
-          postalCode: "12345",
-          country: "Country",
-          isDefault: true,
-        },
-      ],
-    },
-    {
-      name: "Customer Two",
-      email: "cust2@example.com",
-      password: custPass,
-      role: "Customer",
-      addresses: [
-        {
-          label: "Home",
-          line1: "456 Elm St",
-          city: "Gotham",
-          state: "State",
-          postalCode: "67890",
-          country: "Country",
-          isDefault: true,
-        },
-      ],
-    },
-  ];
+  const users = [];
 
+  // Primary admin
+  users.push({
+    name: "Admin User",
+    email: "admin@example.com",
+    password: adminPass,
+    role: "Admin",
+  });
+
+  // Admin 2-20
   for (let i = 2; i <= 20; i += 1) {
     users.push({
       name: `Admin User ${i}`,
@@ -70,6 +40,45 @@ async function seed() {
     });
   }
 
+  // Customer 1
+  users.push({
+    name: "Customer One",
+    email: "cust1@example.com",
+    password: custPass,
+    role: "Customer",
+    addresses: [
+      {
+        label: "Home",
+        line1: "123 Main St",
+        city: "Metropolis",
+        state: "State",
+        postalCode: "12345",
+        country: "Country",
+        isDefault: true,
+      },
+    ],
+  });
+
+  // Customer 2
+  users.push({
+    name: "Customer Two",
+    email: "cust2@example.com",
+    password: custPass,
+    role: "Customer",
+    addresses: [
+      {
+        label: "Home",
+        line1: "456 Elm St",
+        city: "Gotham",
+        state: "State",
+        postalCode: "67890",
+        country: "Country",
+        isDefault: true,
+      },
+    ],
+  });
+
+  // Customer 3-20
   for (let i = 3; i <= 20; i += 1) {
     users.push({
       name: `Customer ${i}`,
@@ -92,7 +101,13 @@ async function seed() {
 
   await User.insertMany(users);
 
+  console.log(`✅ Created ${users.length} users`);
+  console.log(
+    `✅ Total users in database: ${await User.countDocuments()}`
+  );
+
   // ---------------- BOOKS ----------------
+
   const authors = [
     "George Orwell",
     "J.K. Rowling",
@@ -146,28 +161,37 @@ async function seed() {
   const books = [];
 
   for (let i = 1; i <= 220; i++) {
-    const title = `${titleWords[i % titleWords.length]} of the ${titleWords[(i + 3) % titleWords.length]}`;
-    const imageCount = Math.floor(Math.random() * 5) + 1;
+    const title =
+      `${titleWords[i % titleWords.length]} of the ${
+        titleWords[(i + 3) % titleWords.length]
+      }`;
 
-    const book = {
+    const imageCount =
+      Math.floor(Math.random() * 5) + 1;
+
+    books.push({
       title: `${title} ${i}`,
-      description: `A ${genres[i % genres.length].toLowerCase()} adventure about ${title.toLowerCase()}.`,
+      description: `A ${genres[
+        i % genres.length
+      ].toLowerCase()} adventure about ${title.toLowerCase()}.`,
       images: Array.from(
         { length: imageCount },
-        (_, idx) => `https://picsum.photos/seed/book${i}-${idx + 1}/500/700`,
+        (_, idx) =>
+          `https://picsum.photos/seed/book${i}-${idx + 1}/500/700`
       ),
       author: authors[i % authors.length],
       genre: genres[i % genres.length],
-      price: Math.floor(Math.random() * 500) + 100, // ₹100–₹600
-    };
-
-    books.push(book);
+      price: Math.floor(Math.random() * 500) + 100,
+    });
   }
 
   await Book.insertMany(books);
 
+  console.log(`✅ Created ${books.length} books`);
+
   console.log("✅ Seed complete!");
   console.log("Admin: admin@example.com / adminpass");
+  console.log("Customer: cust1@example.com / custpass");
 
   process.exit(0);
 }
