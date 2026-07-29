@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const morgan = require("morgan");
@@ -14,7 +15,7 @@ const app = express();
 const uploadsDir = path.join(__dirname, "uploads");
 fs.mkdirSync(uploadsDir, { recursive: true });
 app.use(morgan("dev"));
-app.use(morgan("dev"));
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(uploadsDir));
